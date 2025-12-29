@@ -1,0 +1,362 @@
+// Code comes Here:  
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>General Knowledge Quiz</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    .quiz-option {
+      transition: all 0.3s ease;
+    }
+    
+    .quiz-option:hover {
+      transform: translateX(8px);
+    }
+    
+    .quiz-option.selected {
+      transform: scale(1.02);
+    }
+    
+    .quiz-option.correct {
+      animation: correctPulse 0.6s ease;
+    }
+    
+    .quiz-option.incorrect {
+      animation: incorrectShake 0.5s ease;
+    }
+    
+    @keyframes correctPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    @keyframes incorrectShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+    
+    .progress-bar {
+      transition: width 0.5s ease;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full">
+  <div id="root" class="h-full w-full overflow-auto"></div>
+  <script>
+    const defaultConfig = {
+      background_color: "#0f172a",
+      card_color: "#1e293b",
+      text_color: "#f1f5f9",
+      primary_action_color: "#3b82f6",
+      secondary_action_color: "#64748b",
+      quiz_title: "General Knowledge Quiz",
+      start_button_text: "Start Quiz",
+      submit_button_text: "Submit Answer",
+      next_button_text: "Next Question",
+      restart_button_text: "Try Again"
+    };
+
+    const quizQuestions = [
+      {
+        id: 1,
+        question: "What is the capital of France?",
+        options: ["London", "Berlin", "Paris", "Madrid"],
+        correctAnswer: 2
+      },
+      {
+        id: 2,
+        question: "Which planet is known as the Red Planet?",
+        options: ["Venus", "Mars", "Jupiter", "Saturn"],
+        correctAnswer: 1
+      },
+      {
+        id: 3,
+        question: "Who painted the Mona Lisa?",
+        options: ["Vincent van Gogh", "Pablo Picasso", "Leonardo da Vinci", "Michelangelo"],
+        correctAnswer: 2
+      },
+      {
+        id: 4,
+        question: "What is the largest ocean on Earth?",
+        options: ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean", "Pacific Ocean"],
+        correctAnswer: 3
+      },
+      {
+        id: 5,
+        question: "In which year did World War II end?",
+        options: ["1943", "1944", "1945", "1946"],
+        correctAnswer: 2
+      },
+      {
+        id: 6,
+        question: "What is the smallest country in the world?",
+        options: ["Monaco", "Vatican City", "San Marino", "Liechtenstein"],
+        correctAnswer: 1
+      },
+      {
+        id: 7,
+        question: "Who wrote 'Romeo and Juliet'?",
+        options: ["Charles Dickens", "William Shakespeare", "Jane Austen", "Mark Twain"],
+        correctAnswer: 1
+      },
+      {
+        id: 8,
+        question: "What is the chemical symbol for gold?",
+        options: ["Go", "Gd", "Au", "Ag"],
+        correctAnswer: 2
+      }
+    ];
+
+    let currentState = {
+      screen: 'start',
+      currentQuestionIndex: 0,
+      selectedAnswer: null,
+      score: 0,
+      answered: false,
+      userAnswers: []
+    };
+
+    function renderApp(config) {
+      const root = document.getElementById('root');
+      root.style.background = config.background_color || defaultConfig.background_color;
+      root.style.fontFamily = `${config.font_family || 'Inter'}, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif`;
+      
+      const baseFontSize = config.font_size || 16;
+      
+      if (currentState.screen === 'start') {
+        root.innerHTML = `
+          <div class="min-h-full flex items-center justify-center p-6">
+            <div class="w-full max-w-2xl rounded-2xl p-8 shadow-2xl text-center" style="background: ${config.card_color || defaultConfig.card_color};">
+              <div class="mb-8">
+                <div class="text-6xl mb-4">🧠</div>
+                <h1 class="font-bold mb-3" style="color: ${config.text_color || defaultConfig.text_color}; font-size: ${baseFontSize * 2}px;">${config.quiz_title || defaultConfig.quiz_title}</h1>
+                <p class="opacity-80" style="color: ${config.text_color || defaultConfig.text_color}; font-size: ${baseFontSize}px;">Test your knowledge with ${quizQuestions.length} challenging questions</p>
+              </div>
+              <button id="start-btn" class="px-8 py-4 rounded-xl font-semibold transition-all hover:scale-105 shadow-lg" style="background: ${config.primary_action_color || defaultConfig.primary_action_color}; color: white; font-size: ${baseFontSize * 1.1}px;">
+                ${config.start_button_text || defaultConfig.start_button_text}
+              </button>
+            </div>
+          </div>
+        `;
+        
+        document.getElementById('start-btn').addEventListener('click', () => {
+          currentState.screen = 'quiz';
+          renderApp(config);
+        });
+      } else if (currentState.screen === 'quiz') {
+        const question = quizQuestions[currentState.currentQuestionIndex];
+        const progress = ((currentState.currentQuestionIndex + 1) / quizQuestions.length) * 100;
+        
+        root.innerHTML = `
+          <div class="min-h-full flex items-center justify-center p-6">
+            <div class="w-full max-w-3xl rounded-2xl p-8 shadow-2xl" style="background: ${config.card_color || defaultConfig.card_color};">
+              <div class="mb-6">
+                <div class="flex justify-between mb-2" style="color: ${config.text_color || defaultConfig.text_color}; font-size: ${baseFontSize * 0.9}px;">
+                  <span class="font-semibold">Question ${currentState.currentQuestionIndex + 1} of ${quizQuestions.length}</span>
+                  <span class="font-semibold">Score: ${currentState.score}/${currentState.currentQuestionIndex}</span>
+                </div>
+                <div class="w-full rounded-full h-2" style="background: ${config.secondary_action_color || defaultConfig.secondary_action_color}; opacity: 0.3;">
+                  <div class="progress-bar h-2 rounded-full" style="width: ${progress}%; background: ${config.primary_action_color || defaultConfig.primary_action_color};"></div>
+                </div>
+              </div>
+              
+              <div class="mb-8">
+                <h2 class="font-bold mb-6" style="color: ${config.text_color || defaultConfig.text_color}; font-size: ${baseFontSize * 1.5}px;">${question.question}</h2>
+                <div class="space-y-3" id="options-container">
+                  ${question.options.map((option, index) => `
+                    <button class="quiz-option w-full text-left p-4 rounded-xl font-medium border-2 transition-all ${currentState.selectedAnswer === index ? 'selected' : ''}" 
+                            data-index="${index}"
+                            style="color: ${config.text_color || defaultConfig.text_color}; 
+                                   background: ${currentState.selectedAnswer === index ? config.primary_action_color || defaultConfig.primary_action_color : 'transparent'}; 
+                                   border-color: ${currentState.selectedAnswer === index ? config.primary_action_color || defaultConfig.primary_action_color : config.secondary_action_color || defaultConfig.secondary_action_color}; 
+                                   opacity: ${currentState.selectedAnswer === index ? '1' : '0.7'};
+                                   font-size: ${baseFontSize}px;"
+                            ${currentState.answered ? 'disabled' : ''}>
+                      <span class="font-bold mr-3">${String.fromCharCode(65 + index)}.</span>${option}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+              
+              <div class="flex justify-end">
+                <button id="action-btn" class="px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" 
+                        style="background: ${config.primary_action_color || defaultConfig.primary_action_color}; color: white; font-size: ${baseFontSize}px;"
+                        ${currentState.selectedAnswer === null && !currentState.answered ? 'disabled' : ''}>
+                  ${currentState.answered ? (config.next_button_text || defaultConfig.next_button_text) : (config.submit_button_text || defaultConfig.submit_button_text)}
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        if (!currentState.answered) {
+          document.querySelectorAll('.quiz-option').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              currentState.selectedAnswer = parseInt(e.currentTarget.dataset.index);
+              renderApp(config);
+            });
+          });
+        }
+        
+        document.getElementById('action-btn').addEventListener('click', () => {
+          if (!currentState.answered) {
+            currentState.answered = true;
+            currentState.userAnswers.push(currentState.selectedAnswer);
+            
+            if (currentState.selectedAnswer === question.correctAnswer) {
+              currentState.score++;
+              document.querySelector(`[data-index="${currentState.selectedAnswer}"]`).classList.add('correct');
+            } else {
+              document.querySelector(`[data-index="${currentState.selectedAnswer}"]`).classList.add('incorrect');
+              document.querySelector(`[data-index="${question.correctAnswer}"]`).classList.add('correct');
+            }
+            
+            document.querySelectorAll('.quiz-option').forEach(btn => btn.disabled = true);
+            renderApp(config);
+          } else {
+            if (currentState.currentQuestionIndex < quizQuestions.length - 1) {
+              currentState.currentQuestionIndex++;
+              currentState.selectedAnswer = null;
+              currentState.answered = false;
+              renderApp(config);
+            } else {
+              currentState.screen = 'results';
+              renderApp(config);
+            }
+          }
+        });
+      } else if (currentState.screen === 'results') {
+        const percentage = Math.round((currentState.score / quizQuestions.length) * 100);
+        const emoji = percentage >= 80 ? '🏆' : percentage >= 60 ? '🎉' : percentage >= 40 ? '👍' : '📚';
+        
+        root.innerHTML = `
+          <div class="min-h-full flex items-center justify-center p-6">
+            <div class="w-full max-w-2xl rounded-2xl p-8 shadow-2xl text-center" style="background: ${config.card_color || defaultConfig.card_color};">
+              <div class="mb-8">
+                <div class="text-6xl mb-4">${emoji}</div>
+                <h1 class="font-bold mb-3" style="color: ${config.text_color || defaultConfig.text_color}; font-size: ${baseFontSize * 2}px;">Quiz Complete!</h1>
+                <p class="opacity-80 mb-6" style="color: ${config.text_color || defaultConfig.text_color}; font-size: ${baseFontSize}px;">Here's how you did</p>
+                
+                <div class="inline-block rounded-2xl p-6 mb-6" style="background: ${config.primary_action_color || defaultConfig.primary_action_color};">
+                  <div class="font-bold mb-2" style="color: white; font-size: ${baseFontSize * 3}px;">${currentState.score}/${quizQuestions.length}</div>
+                  <div class="font-semibold" style="color: white; font-size: ${baseFontSize * 1.2}px;">${percentage}% Correct</div>
+                </div>
+              </div>
+              
+              <button id="restart-btn" class="px-8 py-4 rounded-xl font-semibold transition-all hover:scale-105 shadow-lg" style="background: ${config.secondary_action_color || defaultConfig.secondary_action_color}; color: white; font-size: ${baseFontSize * 1.1}px;">
+                ${config.restart_button_text || defaultConfig.restart_button_text}
+              </button>
+            </div>
+          </div>
+        `;
+        
+        document.getElementById('restart-btn').addEventListener('click', () => {
+          currentState = {
+            screen: 'start',
+            currentQuestionIndex: 0,
+            selectedAnswer: null,
+            score: 0,
+            answered: false,
+            userAnswers: []
+          };
+          renderApp(config);
+        });
+      }
+    }
+
+    async function onConfigChange(config) {
+      renderApp(config);
+    }
+
+    function mapToCapabilities(config) {
+      return {
+        recolorables: [
+          {
+            get: () => config.background_color || defaultConfig.background_color,
+            set: (value) => {
+              config.background_color = value;
+              window.elementSdk.setConfig({ background_color: value });
+            }
+          },
+          {
+            get: () => config.card_color || defaultConfig.card_color,
+            set: (value) => {
+              config.card_color = value;
+              window.elementSdk.setConfig({ card_color: value });
+            }
+          },
+          {
+            get: () => config.text_color || defaultConfig.text_color,
+            set: (value) => {
+              config.text_color = value;
+              window.elementSdk.setConfig({ text_color: value });
+            }
+          },
+          {
+            get: () => config.primary_action_color || defaultConfig.primary_action_color,
+            set: (value) => {
+              config.primary_action_color = value;
+              window.elementSdk.setConfig({ primary_action_color: value });
+            }
+          },
+          {
+            get: () => config.secondary_action_color || defaultConfig.secondary_action_color,
+            set: (value) => {
+              config.secondary_action_color = value;
+              window.elementSdk.setConfig({ secondary_action_color: value });
+            }
+          }
+        ],
+        borderables: [],
+        fontEditable: {
+          get: () => config.font_family || 'Inter',
+          set: (value) => {
+            config.font_family = value;
+            window.elementSdk.setConfig({ font_family: value });
+          }
+        },
+        fontSizeable: {
+          get: () => config.font_size || 16,
+          set: (value) => {
+            config.font_size = value;
+            window.elementSdk.setConfig({ font_size: value });
+          }
+        }
+      };
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ["quiz_title", config.quiz_title || defaultConfig.quiz_title],
+        ["start_button_text", config.start_button_text || defaultConfig.start_button_text],
+        ["submit_button_text", config.submit_button_text || defaultConfig.submit_button_text],
+        ["next_button_text", config.next_button_text || defaultConfig.next_button_text],
+        ["restart_button_text", config.restart_button_text || defaultConfig.restart_button_text]
+      ]);
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities,
+        mapToEditPanelValues
+      });
+
+      renderApp(window.elementSdk.config);
+    } else {
+      renderApp(defaultConfig);
+    }
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b5b8691d7faa077',t:'MTc2NzAzNDY3My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
